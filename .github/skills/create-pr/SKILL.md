@@ -21,9 +21,10 @@ Create a focused, reviewable GitHub pull request from the current branch. Preser
    - Identify the smallest relevant build, lint, and test commands from the repository.
    - Run those checks before committing. Do not claim a check passed if it was not run.
    - If checks fail, fix failures caused by the requested change when in scope; otherwise report the blocker and stop before creating the PR.
-3. Use the existing branch:
-   - Use the current branch; do not create a branch.
-   - If the current branch is the target base or there is no current branch, stop and ask the user to switch to the intended branch.
+3. Check the branch:
+   - If the changes are on a separate branch, use it.
+   - If the changes are not yet committed and are on the branch the PR will go into (usually `main`), create a new branch for them. Name it `feature/<description>`, `bugfix/<description>`, `chore/<description>`, or `task/<description>`.
+   - If the changes are already committed on that branch, or you cannot tell which branch to use, ask the user before continuing.
    - Do not reset, clean, amend, force-push, or overwrite existing user work.
    - Do not stage generated files, secrets, credentials, or unrelated changes.
 4. If the requested changes are not already committed:
@@ -56,7 +57,7 @@ Create a focused, reviewable GitHub pull request from the current branch. Preser
 
 - Ask before creating a PR when the target base, scope of changes, or intended reviewers materially affects the result and cannot be determined from repository conventions.
 - If the worktree contains pre-existing changes, preserve them and either isolate the requested changes or explain why safe isolation is not possible.
-- If the branch has no commits to propose against the target base, do not create an empty PR unless the user explicitly requests one.
+- If there are no changes to propose, explain this and do not create an empty PR.
 - If a PR already exists for the current branch, update or report that PR instead of creating a duplicate.
 
 ## Safety
