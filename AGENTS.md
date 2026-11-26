@@ -11,6 +11,8 @@ Update this file whenever you make structural, dependency or convention changes.
 
 - Frontend: dependency-free static HTML and CSS; no framework or package manager is used.
 - `index.html` and `styles.css`: marketing landing page.
+- `app/`: the Planning Poker application itself (static HTML/CSS/JS), separate from the marketing landing page.
+- `tests/`: automated tests, run with Node's built-in test runner (`node:test`); no package manager or test dependency is added.
 - `docs/`: project documentation and backend API contract.
 - `tools/`: developer tooling.
 - `.backlog/`: backlog configuration and templates; work items are managed in GitHub Projects.
@@ -20,15 +22,15 @@ Update this file whenever you make structural, dependency or convention changes.
 # Commands
 
 - Install: not needed; the page has no dependencies.
-- Run: open `index.html` directly in a modern browser; no server or build command is configured.
-- Test: not configured; there is no test suite or test script.
+- Run: open `index.html` or `app/index.html` directly in a modern browser; no server or build command is configured.
+- Test: `node --test` (requires Node.js; runs everything under `tests/` via the built-in test runner, no install step).
 - Lint: not configured; there is no linter or lint script.
 
 # Conventions and testing
 
 - Follow the backlog acceptance criteria and preserve the API contract.
 - Use semantic HTML, responsive CSS, and no new dependencies unless approved.
-- Add focused tests when interactive application behavior is introduced; no test framework is configured yet.
+- Add a `node:test` test under `tests/` for new application behaviour; run `node --test` before committing.
 - Check HTML/CSS changes with `git diff --check`; run configured tests and lint checks when available.
 
 # Boundaries
