@@ -14,3 +14,7 @@ function randomSegment() {
 export function generateRoomId() {
   return Array.from({ length: SEGMENT_COUNT }, randomSegment).join('-');
 }
+
+export function isValidRoomId(roomId) {
+  return typeof roomId === 'string' && ROOM_ID_PATTERN.test(roomId);
+}
