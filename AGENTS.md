@@ -9,10 +9,10 @@ Update this file whenever you make structural, dependency or convention changes.
 
 # Stack and structure
 
-- Frontend: dependency-free static HTML and CSS; no framework or package manager is used.
+- Frontend: dependency-free static HTML and CSS; no framework is used. `package.json` exists only to expose npm scripts (e.g. `npm test`) and has no runtime or dev dependencies.
 - `index.html` and `styles.css`: marketing landing page.
 - `app/`: the Planning Poker application itself (static HTML/CSS/JS), separate from the marketing landing page.
-- `tests/`: automated tests, run with Node's built-in test runner (`node:test`); no package manager or test dependency is added.
+- `tests/`: automated tests, run with Node's built-in test runner (`node:test`); no test dependency is added.
 - `docs/`: project documentation and backend API contract.
 - `tools/`: developer tooling.
 - `.backlog/`: backlog configuration and templates; work items are managed in GitHub Projects.
@@ -21,9 +21,9 @@ Update this file whenever you make structural, dependency or convention changes.
 
 # Commands
 
-- Install: not needed; the page has no dependencies.
+- Install: not needed; `package.json` has no dependencies.
 - Run: open `index.html` or `app/index.html` directly in a modern browser; no server or build command is configured.
-- Test: `node --test` (requires Node.js; runs everything under `tests/` via the built-in test runner, no install step).
+- Test: `npm test` (or `node --test` directly; requires Node.js, runs everything under `tests/`).
 - Lint: not configured; there is no linter or lint script.
 
 # Conventions and testing
