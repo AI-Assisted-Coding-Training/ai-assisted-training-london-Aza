@@ -27,6 +27,9 @@ Both commands must succeed, and Copilot Chat must reply to `Hello`.
 
 | Path | Contents |
 |---|---|
+| `index.html`, `styles.css` | Landing page and the join-a-session UI |
+| `app.js` | Join-session logic: room links, display-name validation, the WebSocket connection, and automatic reconnect |
+| `test/` | `node --test` suite for `app.js` (no test framework dependency; run with `npm test`) |
 | `docs/` | Project documentation, including the [API contract](docs/api-contract.md) |
 | `tools/` | Developer tooling |
 
@@ -36,7 +39,7 @@ The [API contract](docs/api-contract.md) describes the WebSocket protocol, room 
 
 ## Deployment
 
-The landing page is a static site suitable for GitHub Pages. Configure Pages to publish from the repository root of the chosen branch. The landing page explains the concept; the room and voting features are not yet implemented.
+The landing page is a static site suitable for GitHub Pages. Configure Pages to publish from the repository root of the chosen branch. Joining a session and seeing who else is present is implemented; voting, reveal and results are not yet implemented.
 
 ## How we work
 

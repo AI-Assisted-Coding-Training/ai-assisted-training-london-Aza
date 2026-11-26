@@ -16,7 +16,8 @@
       </a>
       <nav aria-label="Main navigation">
         <a href="#how-it-works">How it works</a>
-        <a class="nav-link" href="#about">About <span aria-hidden="true">↗</span></a>
+        <a href="#about">About</a>
+        <a class="nav-link" href="#session-app">Start a session <span aria-hidden="true">↗</span></a>
       </nav>
     </header>
 
@@ -83,6 +84,50 @@
         </div>
         <a class="button button-light" href="#how-it-works">Back to the basics <span aria-hidden="true">↑</span></a>
       </section>
+
+      <section class="session-app" id="session-app" aria-labelledby="session-app-title">
+        <h2 id="session-app-title" class="sr-only">Start or join a session</h2>
+
+        <div id="start-screen" class="session-screen">
+          <h3>Start a session</h3>
+          <p>Create a new room and share the link with your team.</p>
+          <button id="start-session" type="button" class="button button-primary">Start a new session</button>
+        </div>
+
+        <div id="join-screen" class="session-screen" hidden>
+          <h3>Join this session</h3>
+          <p id="join-share-link" class="share-link" aria-live="polite"></p>
+          <form id="join-form" novalidate>
+            <label for="display-name">Display name</label>
+            <input
+              id="display-name"
+              name="display-name"
+              type="text"
+              maxlength="32"
+              autocomplete="off"
+              required
+            />
+            <p id="join-error" class="session-error" role="alert" hidden></p>
+            <button type="submit" class="button button-primary">Join session</button>
+          </form>
+        </div>
+
+        <div id="session-screen" class="session-screen" hidden>
+          <h3>Session</h3>
+          <p id="session-share-link" class="share-link" aria-live="polite"></p>
+          <p id="connection-banner" class="session-banner session-banner-warning" role="status" hidden></p>
+          <p id="rejoin-banner" class="session-banner session-banner-info" role="status" hidden>
+            You&rsquo;ve rejoined as a new participant &mdash; please vote again.
+          </p>
+          <h4>Participants</h4>
+          <ul id="participant-list" class="participant-list" aria-live="polite"></ul>
+        </div>
+
+        <div id="invalid-link-screen" class="session-screen" hidden>
+          <h3>This session link isn&rsquo;t valid</h3>
+          <p>Double-check the link your teammate shared, or start a new session.</p>
+        </div>
+      </section>
     </main>
 
     <footer>
@@ -90,5 +135,7 @@
       <p>Better estimates start with better conversations.</p>
       <a href="#top">Back to top ↑</a>
     </footer>
+
+    <script src="app.js"></script>
   </body>
 </html>
