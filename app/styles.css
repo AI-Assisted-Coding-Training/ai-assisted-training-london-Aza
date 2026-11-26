@@ -74,7 +74,7 @@ button:hover {
 
 .field-error,
 .failure,
-.vote-error {
+.action-error {
   margin: -0.25rem 0 0.75rem;
   font-size: 0.875rem;
   color: #a3311f;
@@ -133,11 +133,18 @@ button:hover {
   opacity: 0.65;
 }
 
-.vote-error {
+.round-controls:not([hidden]) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.action-error {
   margin: 0 0 0.75rem;
 }
 
-.vote-error:empty,
+.action-error:empty,
 .status:empty {
   margin: 0;
 }
@@ -163,7 +170,8 @@ button:hover {
   font-weight: 600;
 }
 
-.voted-status {
+.participant-detail {
   flex-shrink: 0;
+  max-width: 50%;
   color: var(--muted);
 }

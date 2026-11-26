@@ -4,6 +4,29 @@ import { reconnectDelayMs } from './reconnect.js';
 import { describeJoinOutcome } from './join-outcome.js';
 import { describeJoinFailure } from './join-failure.js';
 
+const hostActionErrors = new Map([
+  ['Invalid reveal message', 'reveal'],
+  ['Only the host can reveal votes', 'reveal'],
+  ['Votes are already revealed', 'reveal'],
+  ['Invalid reset message', 'reset'],
+  ['Only the host can reset votes', 'reset'],
+  ['Votes are already reset', 'reset'],
+]);
+
+function buildResults(roster, votes) {
+  const counts = new Map();
+  const participants = roster.map((participant) => {
+    const value = Object.hasOwn(votes, participant.id) ? votes[participant.id] : null;
+    if (value !== null) {
+      counts.set(value, (counts.get(value) ?? 0) + 1);
+    }
+    return { ...participant, value };
+  });
+  const maxCount = Math.max(0, ...counts.values());
+  const mostCommonVotes = [...counts.keys()].filter((value) => counts.get(value) === maxCount);
+  return { participants, mostCommonVotes };
+}
+
 export function createSessionClient({
   url,
   roomId,
@@ -16,16 +39,23 @@ export function createSessionClient({
   let hasJoinedBefore = false;
   let manuallyClosed = false;
   let hasSnapshot = false;
+  let isHost = false;
   let revealed = false;
   let hasVoted = false;
+  let votedCount = 0;
   let selectedVote = null;
+  const pendingHostActions = [];
 
   function emit(status, payload) {
     onStatusChange?.(status, payload);
   }
 
+  function isConnected() {
+    return !manuallyClosed && hasSnapshot && socket.readyState === WebSocketImpl.OPEN;
+  }
+
   function canVote() {
-    return !manuallyClosed && hasSnapshot && !revealed && socket.readyState === WebSocketImpl.OPEN;
+    return isConnected() && !revealed;
   }
 
   function emitVoting() {
@@ -44,6 +74,22 @@ export function createSessionClient({
     socket.send(JSON.stringify({ type: 'vote', value }));
     selectedVote = value;
     emitVoting();
+  }
+
+  function sendHostAction(type) {
+    if (!isConnected() || !isHost) {
+      emit('error', { message: 'Only the connected host can manage the round.' });
+      return;
+    }
+    socket.send(JSON.stringify({ type }));
+    pendingHostActions.push(type);
+  }
+
+  function finishHostAction(type) {
+    const index = pendingHostActions.indexOf(type);
+    if (index !== -1) {
+      pendingHostActions.splice(index, 1);
+    }
   }
 
   function connect() {
@@ -71,23 +117,45 @@ export function createSessionClient({
 
       if (message.type === 'state') {
         const roster = buildRoster(ownUserId, message);
+        const nextRevealed = message.revealed === true;
         const nextHasVoted = roster.find((participant) => participant.isMe)?.hasVoted === true;
+        const nextVotedCount = roster.filter((participant) => participant.hasVoted).length;
+        if (!revealed && nextRevealed) {
+          finishHostAction('reveal');
+        }
+        if (!nextRevealed && nextVotedCount === 0 && (revealed || votedCount > 0)) {
+          finishHostAction('reset');
+        }
         // A revealed round reopened or our confirmed vote was reset.
-        if ((revealed && !message.revealed) || (hasVoted && !nextHasVoted)) {
+        if ((revealed && !nextRevealed) || (hasVoted && !nextHasVoted)) {
           selectedVote = null;
         }
         hasSnapshot = true;
-        revealed = message.revealed === true;
+        isHost = ownUserId === message.hostId;
+        revealed = nextRevealed;
         hasVoted = nextHasVoted;
-        emit('roster', { roster, votedCount: roster.filter((participant) => participant.hasVoted).length });
+        votedCount = nextVotedCount;
+        emit('roster', { roster, votedCount });
         emitVoting();
+        emit('round', {
+          canManageRound: isConnected() && isHost,
+          results: revealed ? buildResults(roster, message.votes) : null,
+        });
         return;
       }
 
       if (message.type === 'error') {
-        // Voting is the only action this client sends; errors have no request ID.
-        selectedVote = null;
-        emitVoting();
+        const hostAction = hostActionErrors.get(message.message);
+        const voteError = message.message === 'Invalid vote message' || message.message === 'Voting is locked until reset';
+        if (hostAction) {
+          finishHostAction(hostAction);
+        } else if (voteError || pendingHostActions.length === 0) {
+          selectedVote = null;
+          emitVoting();
+        } else {
+          // Generic errors have no request ID. Keep the selection if a host action may have failed.
+          pendingHostActions.shift();
+        }
         emit('error', { message: message.message });
       }
     };
@@ -101,10 +169,14 @@ export function createSessionClient({
         return;
       }
       hasSnapshot = false;
+      isHost = false;
       revealed = false;
       hasVoted = false;
+      votedCount = 0;
       selectedVote = null;
+      pendingHostActions.length = 0;
       emitVoting();
+      emit('round', { canManageRound: false, results: null });
       emit('reconnecting');
       scheduleReconnect(connect, reconnectDelayMs(event.code));
     };
@@ -117,5 +189,10 @@ export function createSessionClient({
 
   connect();
 
-  return { close, vote };
+  return {
+    close,
+    vote,
+    reveal: () => sendHostAction('reveal'),
+    reset: () => sendHostAction('reset'),
+  };
 }

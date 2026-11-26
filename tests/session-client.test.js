@@ -135,17 +135,16 @@ test('voted indicators and progress follow full snapshots as participants vote a
   assert.equal(latest('roster').roster.length, 1);
 });
 
-test('reveal locks voting without exposing results and reset clears the selection', () => {
+test('reveal locks voting and reset clears the selection', () => {
   const { client, socket, latest } = votingSession();
   client.vote('5');
   const users = [{ ...alice, hasVoted: true }, { ...bob, hasVoted: true }];
-  const votes = { alice: '5', bob: 'peer-vote-not-for-this-screen' };
+  const votes = { alice: '5', bob: '8' };
   voteState(socket, users, { revealed: true, votes });
 
   assert.equal(latest('voting').revealed, true);
   assert.equal(latest('voting').canVote, false);
   assert.equal(latest('voting').selectedVote, '5');
-  assert.doesNotMatch(JSON.stringify([latest('roster'), latest('voting')]), /peer-vote-not-for-this-screen/);
   client.vote('8');
   assert.deepEqual(socket.sent, [{ type: 'vote', value: '5' }]);
 
@@ -185,4 +184,96 @@ test('a disconnect disables voting and a fresh connection starts without the old
   assert.equal(latest('voting').canVote, true);
   assert.equal(latest('voting').selectedVote, null);
   assert.equal(latest('roster').votedCount, 1);
+});
+
+test('the current host can send either round action before or after reveal', () => {
+  const { client, socket, latest } = votingSession();
+
+  assert.equal(latest('round').canManageRound, true);
+  client.reset();
+  client.reveal();
+  assert.deepEqual(socket.sent, [{ type: 'reset' }, { type: 'reveal' }]);
+  assert.equal(latest('round').results, null);
+
+  voteState(socket, [alice, bob], { revealed: true, votes: {} });
+  assert.equal(latest('round').canManageRound, true);
+  client.reveal();
+  client.reset();
+  assert.deepEqual(socket.sent.slice(2), [{ type: 'reveal' }, { type: 'reset' }]);
+  assert.notEqual(latest('round').results, null);
+
+  voteState(socket, [alice, bob]);
+  assert.equal(latest('round').results, null);
+  assert.equal(latest('voting').canVote, true);
+});
+
+test('round controls follow host promotion and are unavailable while reconnecting', () => {
+  const { client, socket, latest } = votingSession();
+  voteState(socket, [alice, bob], { hostId: bob.id });
+  assert.equal(latest('round').canManageRound, false);
+  client.reveal();
+  client.reset();
+  assert.deepEqual(socket.sent, []);
+
+  voteState(socket, [alice]);
+  assert.equal(latest('round').canManageRound, true);
+  client.reveal();
+  assert.deepEqual(socket.sent, [{ type: 'reveal' }]);
+
+  socket.close();
+  assert.equal(latest('round').canManageRound, false);
+  assert.equal(latest('round').results, null);
+});
+
+test('results are private until reveal, then list each participant and all tied estimates', () => {
+  const { socket, latest } = votingSession();
+  const carol = { id: 'carol', name: 'Carol', hasVoted: false };
+  const participants = [{ ...alice, hasVoted: true }, { ...bob, hasVoted: true }, carol];
+  const votes = { bob: '8', alice: '5' };
+
+  voteState(socket, participants, { votes });
+  assert.equal(latest('round').results, null);
+  voteState(socket, participants, { revealed: true, votes });
+  const { participants: results, mostCommonVotes } = latest('round').results;
+  assert.deepEqual(results.map(({ displayLabel, value }) => [displayLabel, value]), [
+    ['Alice', '5'], ['Bob', '8'], ['Carol', null],
+  ]);
+  assert.deepEqual(mostCommonVotes, ['5', '8']);
+
+  voteState(socket, participants.map((participant) => ({ ...participant, hasVoted: true })), {
+    revealed: true,
+    votes: { ...votes, carol: '8' },
+  });
+  assert.deepEqual(latest('round').results.mostCommonVotes, ['8']);
+});
+
+test('revealing an empty vote map has no most common estimate', () => {
+  const { socket, latest } = votingSession();
+  voteState(socket, [alice, bob], { revealed: true, votes: {} });
+  assert.deepEqual(latest('round').results.mostCommonVotes, []);
+  assert.deepEqual(latest('round').results.participants.map(({ value }) => value), [null, null]);
+});
+
+test('host action errors are surfaced without clearing the selected vote', () => {
+  const { client, socket, latest } = votingSession();
+  client.vote('5');
+  voteState(socket, [{ ...alice, hasVoted: true }, bob]);
+  client.reset();
+  send(socket, { type: 'error', message: 'Only the host can reset votes' });
+  assert.equal(latest('error').message, 'Only the host can reset votes');
+  assert.equal(latest('voting').selectedVote, '5');
+
+  client.reveal();
+  client.reset();
+  send(socket, { type: 'error', message: 'Rate limit exceeded' });
+  assert.equal(latest('error').message, 'Rate limit exceeded');
+  assert.equal(latest('voting').selectedVote, '5');
+  send(socket, { type: 'error', message: 'Internal error' });
+  assert.equal(latest('error').message, 'Internal error');
+  assert.equal(latest('voting').selectedVote, '5');
+  assert.equal(latest('round').results, null);
+
+  client.vote('8');
+  send(socket, { type: 'error', message: 'Invalid vote message' });
+  assert.equal(latest('voting').selectedVote, null);
 });
