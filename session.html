@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f8f8f5">
+    <title>Planning Poker — Session</title>
+    <link rel="stylesheet" href="session.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="app-header">
+      <span class="brand">planning<span class="brand-light">poker</span></span>
+    </header>
+
+    <main id="main" class="app-main">
+      <section id="view-join" class="panel" aria-labelledby="join-title" hidden>
+        <h1 id="join-title">Start a session</h1>
+        <p id="join-intro" class="muted">Enter your display name to start a session and get a link to share with your team.</p>
+        <form id="join-form" novalidate>
+          <label for="display-name">Display name</label>
+          <input id="display-name" name="name" type="text" autocomplete="nickname" aria-describedby="name-error">
+          <p id="name-error" class="field-error" role="alert"></p>
+          <button id="join-button" type="submit" class="button">Start session</button>
+        </form>
+      </section>
+
+      <section id="view-message" class="panel" aria-labelledby="message-title" hidden>
+        <h1 id="message-title"></h1>
+        <p id="message-body" class="muted"></p>
+        <a id="message-action" class="button" href="session.html">Start a new session</a>
+      </section>
+
+      <section id="view-session" class="session" aria-labelledby="session-title" hidden>
+        <h1 id="session-title">Session</h1>
+
+        <div id="connection-banner" class="banner banner-warning" role="status" hidden></div>
+        <div id="notice-banner" class="banner banner-info" role="status" hidden>
+          <span id="notice-text"></span>
+          <button id="notice-dismiss" type="button" class="link-button">Dismiss</button>
+        </div>
+
+        <div class="share">
+          <label for="share-link">Share this link with your team</label>
+          <div class="share-row">
+            <input id="share-link" type="text" readonly>
+            <button id="copy-link" type="button" class="button button-secondary">Copy link</button>
+          </div>
+          <p id="copy-status" class="muted small" role="status"></p>
+        </div>
+
+        <div class="panel participants">
+          <h2 id="participants-title">Participants <span id="participant-count" class="count"></span></h2>
+          <ul id="participant-list" class="participant-list" aria-labelledby="participants-title"></ul>
+        </div>
+      </section>
+    </main>
+
+    <script src="session-client.js"></script>
+    <script src="session.js"></script>
+  </body>
+</html>
