@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // Minimal static file server for local exploration, no dependencies.
-const http = require('node:http');
-const fs = require('node:fs');
-const path = require('node:path');
+import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
 const port = Number(process.env.PORT) || 8080;
 
