@@ -36,7 +36,7 @@ The [API contract](docs/api-contract.md) describes the WebSocket protocol, room 
 
 ## Deployment
 
-The application is built as a static site and deployed to GitHub Pages.
+The landing page is a static site suitable for GitHub Pages. Configure Pages to publish from the repository root of the chosen branch. The landing page explains the concept; the room and voting features are not yet implemented.
 
 ## How we work
 
