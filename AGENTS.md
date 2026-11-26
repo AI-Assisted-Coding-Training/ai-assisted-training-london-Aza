@@ -9,8 +9,10 @@ Update this file whenever you make structural, dependency or convention changes.
 
 # Stack and structure
 
-- Frontend: dependency-free static HTML and CSS; no framework or package manager is used.
+- Frontend: dependency-free static HTML and CSS; no framework is used. `package.json` exists only to expose npm scripts (e.g. `npm test`) and has no runtime or dev dependencies.
 - `index.html` and `styles.css`: marketing landing page.
+- `app/`: the Planning Poker application itself (static HTML/CSS/JS), separate from the marketing landing page.
+- `tests/`: automated tests, run with Node's built-in test runner (`node:test`); no test dependency is added.
 - `docs/`: project documentation and backend API contract.
 - `tools/`: developer tooling.
 - `.backlog/`: backlog configuration and templates; work items are managed in GitHub Projects.
@@ -19,16 +21,16 @@ Update this file whenever you make structural, dependency or convention changes.
 
 # Commands
 
-- Install: not needed; the page has no dependencies.
-- Run: open `index.html` directly in a modern browser; no server or build command is configured.
-- Test: not configured; there is no test suite or test script.
+- Install: not needed; `package.json` has no dependencies.
+- Run: `npm start` serves the repo locally at `http://localhost:8080/` (app at `/app/`) via `tools/serve.js`, a dependency-free static file server; or open `index.html`/`app/index.html` directly in a browser.
+- Test: `npm test` (or `node --test` directly; requires Node.js, runs everything under `tests/`).
 - Lint: not configured; there is no linter or lint script.
 
 # Conventions and testing
 
 - Follow the backlog acceptance criteria and preserve the API contract.
 - Use semantic HTML, responsive CSS, and no new dependencies unless approved.
-- Add focused tests when interactive application behavior is introduced; no test framework is configured yet.
+- Add a `node:test` test under `tests/` for new application behaviour; run `node --test` before committing.
 - Check HTML/CSS changes with `git diff --check`; run configured tests and lint checks when available.
 
 # Boundaries
