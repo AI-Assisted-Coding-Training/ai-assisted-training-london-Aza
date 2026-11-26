@@ -73,12 +73,21 @@ function showSession({ roomId, isStarting }) {
           ${VOTE_CARDS.map((value) => `<button type="button" class="vote-card" data-vote="${value}" aria-pressed="false" disabled>${value}</button>`).join('')}
         </div>
         <p class="status" data-testid="vote-lock" role="status"></p>
-        <p class="vote-error" data-testid="vote-error" role="alert"></p>
+        <div class="round-controls" data-testid="round-controls" hidden>
+          <button type="button" data-testid="reveal-votes">Reveal votes</button>
+          <button type="button" data-testid="reset-votes">Start new round</button>
+        </div>
+        <p class="action-error" data-testid="action-error" role="alert"></p>
       </section>
-      <section aria-labelledby="roster-heading">
+      <section aria-labelledby="roster-heading" data-testid="roster-section">
         <h2 id="roster-heading">Participants</h2>
         <p class="status" data-testid="voting-progress" role="status"></p>
         <ul class="roster" data-testid="roster"></ul>
+      </section>
+      <section aria-labelledby="results-heading" data-testid="results-section" hidden>
+        <h2 id="results-heading">Results</h2>
+        <p class="status" data-testid="results-summary" role="status"></p>
+        <ul class="roster" data-testid="results"></ul>
       </section>
     </main>
   `);
@@ -107,20 +116,23 @@ function renderRejoinNotice(message) {
   notice.textContent = message ?? '';
 }
 
-function renderRoster({ roster, votedCount }) {
-  const list = root.querySelector('[data-testid="roster"]');
-  list.replaceChildren(...roster.map((participant) => {
+function renderParticipantList(list, participants, detailFor) {
+  list.replaceChildren(...participants.map((participant) => {
     const item = document.createElement('li');
     const label = document.createElement('span');
-    const voteStatus = document.createElement('span');
+    const detail = document.createElement('span');
     item.classList.toggle('me', participant.isMe);
     label.textContent = participant.displayLabel + (participant.isHost ? ' — host' : '');
-    voteStatus.className = 'voted-status';
-    voteStatus.textContent = participant.hasVoted ? 'Voted' : 'Not voted';
-    item.append(label, voteStatus);
+    detail.className = 'participant-detail';
+    detail.textContent = detailFor(participant);
+    item.append(label, detail);
     return item;
   }));
+}
 
+function renderRoster({ roster, votedCount }) {
+  const list = root.querySelector('[data-testid="roster"]');
+  renderParticipantList(list, roster, (participant) => participant.hasVoted ? 'Voted' : 'Not voted');
   const progress = root.querySelector('[data-testid="voting-progress"]');
   const text = `${votedCount} of ${roster.length} voted`;
   if (progress.textContent !== text) {
@@ -140,9 +152,33 @@ function renderVoting({ canVote, revealed, selectedVote }) {
   }
 }
 
+function renderRound({ canManageRound, results }) {
+  root.querySelector('[data-testid="round-controls"]').hidden = !canManageRound;
+  root.querySelector('[data-testid="roster-section"]').hidden = results !== null;
+  root.querySelector('[data-testid="results-section"]').hidden = results === null;
+  const summary = root.querySelector('[data-testid="results-summary"]');
+  const list = root.querySelector('[data-testid="results"]');
+  if (results === null) {
+    summary.textContent = '';
+    list.replaceChildren();
+    return;
+  }
+
+  const { participants, mostCommonVotes } = results;
+  let text = 'No votes were cast.';
+  if (mostCommonVotes.length > 0) {
+    const label = mostCommonVotes.length === 1 ? 'Most common estimate' : 'Most common estimates';
+    text = `${label}: ${mostCommonVotes.join(', ')}`;
+  }
+  if (summary.textContent !== text) {
+    summary.textContent = text;
+  }
+  renderParticipantList(list, participants, (participant) => participant.value ?? 'Did not vote');
+}
+
 function joinSession({ roomId, name, isStarting }) {
   showSession({ roomId, isStarting });
-  const voteError = root.querySelector('[data-testid="vote-error"]');
+  const actionError = root.querySelector('[data-testid="action-error"]');
 
   const client = createSessionClient({
     url: buildWsUrl(roomId, name),
@@ -152,7 +188,7 @@ function joinSession({ roomId, name, isStarting }) {
         renderStatus('Connecting…');
       } else if (status === 'reconnecting') {
         renderStatus('Reconnecting…');
-        voteError.textContent = '';
+        actionError.textContent = '';
       } else if (status === 'joined') {
         renderStatus('Connected');
         renderRejoinNotice(payload.outcomeMessage);
@@ -160,20 +196,27 @@ function joinSession({ roomId, name, isStarting }) {
         renderRoster(payload);
       } else if (status === 'voting') {
         renderVoting(payload);
+      } else if (status === 'round') {
+        renderRound(payload);
       } else if (status === 'failed') {
         showFailure(payload.message);
       } else if (status === 'error') {
-        voteError.textContent = payload.message;
+        actionError.textContent = payload.message;
       }
     },
   });
 
-  for (const card of root.querySelectorAll('[data-vote]')) {
-    card.addEventListener('click', () => {
-      voteError.textContent = '';
-      client.vote(card.dataset.vote);
+  function onAction(button, action) {
+    button?.addEventListener('click', () => {
+      actionError.textContent = '';
+      action();
     });
   }
+  for (const card of root.querySelectorAll('[data-vote]')) {
+    onAction(card, () => client.vote(card.dataset.vote));
+  }
+  onAction(root.querySelector('[data-testid="reveal-votes"]'), client.reveal);
+  onAction(root.querySelector('[data-testid="reset-votes"]'), client.reset);
 }
 
 function init() {
