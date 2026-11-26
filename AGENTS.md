@@ -9,7 +9,7 @@ Update this file whenever you make structural, dependency or convention changes.
 
 # Stack and structure
 
-- Frontend: dependency-free static HTML and CSS; no framework is used. `package.json` exists only to expose npm scripts (e.g. `npm test`) and has no runtime or dev dependencies.
+- Frontend: dependency-free static HTML and CSS; no framework is used. `package.json` exists only to expose npm scripts (e.g. `npm test`) and has no runtime or dev dependencies. All JavaScript (`app/`, `tests/`, `tools/`) uses native ES modules (`import`/`export`; `package.json` sets `"type": "module"`).
 - `index.html` and `styles.css`: marketing landing page.
 - `app/`: the Planning Poker application itself (static HTML/CSS/JS), separate from the marketing landing page.
 - `tests/`: automated tests, run with Node's built-in test runner (`node:test`); no test dependency is added.
