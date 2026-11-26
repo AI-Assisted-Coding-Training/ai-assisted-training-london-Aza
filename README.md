@@ -22,6 +22,8 @@ Both commands must succeed, and Copilot Chat must reply to `Hello`.
 ## Getting started
 
 1. Clone the repository.
+2. Run `npm start` and open `http://localhost:8080/app/`.
+3. Start a session and share its link. Each participant can pick or change an estimate from the fixed Fibonacci deck. The roster shows who has voted without showing anyone else's estimate.
 
 ## Project structure
 
@@ -36,7 +38,7 @@ The [API contract](docs/api-contract.md) describes the WebSocket protocol, room 
 
 ## Deployment
 
-The landing page is a static site suitable for GitHub Pages. Configure Pages to publish from the repository root of the chosen branch. The landing page explains the concept; the room and voting features are not yet implemented.
+The frontend is a static site suitable for GitHub Pages. Configure Pages to publish from the repository root of the chosen branch. The landing page explains the concept; `/app/` contains the session and private voting UI. Reveal controls and results are not yet available in the frontend.
 
 ## How we work
 

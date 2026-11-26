@@ -4,11 +4,19 @@ import { createSessionClient } from '../app/session-client.js';
 
 // Minimal hand-rolled WebSocket fake, used only in tests (no new dependency).
 class FakeWebSocket {
+  static OPEN = 1;
+
   constructor(url) {
     this.url = url;
+    this.readyState = FakeWebSocket.OPEN;
+    this.sent = [];
     FakeWebSocket.instances.push(this);
   }
+  send(data) {
+    this.sent.push(JSON.parse(data));
+  }
   close() {
+    this.readyState = 3;
     this.onclose?.({ code: 1000 });
   }
 }
@@ -67,4 +75,114 @@ test('joining, losing connection, and reconnecting reports status, roster and re
   const secondRoster = events.filter((e) => e.status === 'roster').at(-1);
   assert.equal(secondRoster.payload.roster[0].isMe, true);
   assert.equal(secondRoster.payload.roster[0].isHost, true);
+});
+
+const alice = { id: 'alice', name: 'Alice', hasVoted: false };
+const bob = { id: 'bob', name: 'Bob', hasVoted: false };
+
+function voteState(socket, users, options = {}) {
+  send(socket, { type: 'state', hostId: alice.id, revealed: false, votes: null, users, ...options });
+}
+
+function votingSession() {
+  const events = [];
+  const reconnects = [];
+  const client = createSessionClient({
+    url: 'wss://example.com/ws?room=xk29-4plm&name=Alice',
+    roomId: 'xk29-4plm',
+    WebSocketImpl: FakeWebSocket,
+    scheduleReconnect: (fn) => reconnects.push(fn),
+    onStatusChange: (status, payload) => events.push({ status, payload }),
+  });
+  const socket = FakeWebSocket.instances.at(-1);
+  const latest = (status) => events.findLast((event) => event.status === status)?.payload;
+  send(socket, { type: 'welcome', userId: alice.id });
+  voteState(socket, [alice, bob]);
+  return { client, socket, latest, reconnects };
+}
+
+test('casting and changing a vote sends string values and highlights only the local choice', () => {
+  const { client, socket, latest } = votingSession();
+
+  client.vote('0');
+  assert.equal(latest('voting').selectedVote, '0');
+  assert.equal(latest('roster').votedCount, 0);
+
+  voteState(socket, [{ ...alice, hasVoted: true }, bob]);
+  client.vote('8');
+  voteState(socket, [{ ...alice, hasVoted: true }, bob]);
+
+  assert.deepEqual(socket.sent, [{ type: 'vote', value: '0' }, { type: 'vote', value: '8' }]);
+  assert.equal(latest('voting').selectedVote, '8');
+  assert.equal(latest('roster').votedCount, 1);
+});
+
+test('voted indicators and progress follow full snapshots as participants vote and leave', () => {
+  const { socket, latest } = votingSession();
+  const votedBob = { ...bob, hasVoted: true };
+  voteState(socket, [alice, votedBob]);
+
+  const { roster, votedCount } = latest('roster');
+  assert.equal(votedCount, 1);
+  assert.deepEqual(roster.map(({ name, hasVoted }) => [name, hasVoted]), [
+    ['Alice', false],
+    ['Bob', true],
+  ]);
+  assert.equal(latest('voting').selectedVote, null);
+
+  voteState(socket, [alice]);
+  assert.equal(latest('roster').votedCount, 0);
+  assert.equal(latest('roster').roster.length, 1);
+});
+
+test('reveal locks voting without exposing results and reset clears the selection', () => {
+  const { client, socket, latest } = votingSession();
+  client.vote('5');
+  const users = [{ ...alice, hasVoted: true }, { ...bob, hasVoted: true }];
+  const votes = { alice: '5', bob: 'peer-vote-not-for-this-screen' };
+  voteState(socket, users, { revealed: true, votes });
+
+  assert.equal(latest('voting').revealed, true);
+  assert.equal(latest('voting').canVote, false);
+  assert.equal(latest('voting').selectedVote, '5');
+  assert.doesNotMatch(JSON.stringify([latest('roster'), latest('voting')]), /peer-vote-not-for-this-screen/);
+  client.vote('8');
+  assert.deepEqual(socket.sent, [{ type: 'vote', value: '5' }]);
+
+  voteState(socket, [alice, bob]);
+  assert.equal(latest('voting').canVote, true);
+  assert.equal(latest('voting').selectedVote, null);
+});
+
+test('a rejected change clears the highlight without changing confirmed progress', () => {
+  const { client, socket, latest } = votingSession();
+  client.vote('5');
+  voteState(socket, [{ ...alice, hasVoted: true }, bob]);
+  client.vote('8');
+  send(socket, { type: 'error', message: 'Rate limit exceeded' });
+
+  assert.equal(latest('error').message, 'Rate limit exceeded');
+  assert.equal(latest('voting').selectedVote, null);
+  assert.equal(latest('roster').votedCount, 1);
+  assert.equal(latest('roster').roster[0].hasVoted, true);
+});
+
+test('a disconnect disables voting and a fresh connection starts without the old selection', () => {
+  const { client, socket, latest, reconnects } = votingSession();
+  client.vote('5');
+  socket.readyState = 3;
+  socket.onclose({ code: 1006 });
+  assert.equal(latest('voting').canVote, false);
+  client.vote('8');
+  assert.deepEqual(socket.sent, [{ type: 'vote', value: '5' }]);
+
+  reconnects[0]();
+  const nextSocket = FakeWebSocket.instances.at(-1);
+  const newAlice = { ...alice, id: 'alice-rejoined' };
+  send(nextSocket, { type: 'welcome', userId: newAlice.id });
+  assert.equal(latest('voting').canVote, false);
+  voteState(nextSocket, [newAlice, { ...bob, hasVoted: true }], { hostId: bob.id });
+  assert.equal(latest('voting').canVote, true);
+  assert.equal(latest('voting').selectedVote, null);
+  assert.equal(latest('roster').votedCount, 1);
 });
