@@ -122,3 +122,56 @@ footer > a:last-child { margin-left: auto; font-size: 11px; font-weight: 700; te
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }
+
+/*
+ * Session app (join / roster) — AC11 calls for a clean, professional,
+ * distraction-free UI here, deliberately plainer than the marketing
+ * sections above, while reusing the same colour tokens.
+ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.session-app { margin: 0 3% 70px; padding: 48px 7%; background: #fff; border: 1px solid #e3e1d8; border-radius: 14px; }
+.session-screen { max-width: 440px; }
+.session-screen h3 { font-family: Georgia, "Times New Roman", serif; font-weight: 400; font-size: 26px; margin-bottom: 8px; }
+.session-screen h4 { font-size: 13px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin: 24px 0 10px; }
+.session-screen > p { color: var(--muted); font-size: 14px; }
+.session-app label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+.session-app input[type="text"] {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid #cdd1ce;
+  border-radius: 6px;
+  font-size: 15px;
+  margin-bottom: 14px;
+  font-family: inherit;
+}
+.session-app button { border: none; cursor: pointer; }
+.share-link {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  word-break: break-all;
+  background: var(--paper);
+  border: 1px solid #e3e1d8;
+  border-radius: 6px;
+  padding: 10px 13px;
+  margin-bottom: 18px;
+}
+.session-error { color: #b3261e; font-size: 13px; margin: -6px 0 14px; }
+.session-banner { border-radius: 6px; padding: 10px 13px; font-size: 13px; margin-bottom: 14px; }
+.session-banner-warning { background: #fdf2e3; color: #8a5300; }
+.session-banner-info { background: var(--mint); color: #2b5a46; }
+.participant-list { list-style: none; margin: 0; padding: 0; }
+.participant-list li { padding: 9px 0; border-bottom: 1px solid #ecebe3; font-size: 14px; }
+.participant-list li:last-child { border-bottom: none; }
+@media (max-width: 760px) {
+  .session-app { margin: 0 3% 50px; padding: 32px 6%; }
+}

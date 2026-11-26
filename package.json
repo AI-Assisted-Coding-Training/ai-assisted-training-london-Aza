@@ -1,0 +1,8 @@
+{
+  "name": "planning-poker-frontend",
+  "private": true,
+  "description": "Static frontend for Planning Poker; no build step, no runtime dependencies.",
+  "scripts": {
+    "test": "node --test"
+  }
+}
