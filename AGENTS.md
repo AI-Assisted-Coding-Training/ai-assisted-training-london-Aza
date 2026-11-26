@@ -9,8 +9,10 @@ Update this file whenever you make structural, dependency or convention changes.
 
 # Stack and structure
 
-- Frontend: dependency-free static HTML and CSS; no framework or package manager is used.
-- `index.html` and `styles.css`: marketing landing page.
+- Frontend: dependency-free static HTML, CSS and plain (non-module) JavaScript; no framework or package manager is used.
+- `index.html` and `styles.css`: marketing landing page (when present on the branch).
+- `session.html`, `session.css`, `session.js`: join/start session UI and participant list; open `session.html` (a `?room=<id>` query carries the shared room).
+- `session-client.js`: WebSocket client, room/name validation and participant labelling helpers (exposed as `window.PokerSession`).
 - `docs/`: project documentation and backend API contract.
 - `tools/`: developer tooling.
 - `.backlog/`: backlog configuration and templates; work items are managed in GitHub Projects.
