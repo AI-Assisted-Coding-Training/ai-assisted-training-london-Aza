@@ -4,7 +4,8 @@
   "private": true,
   "description": "Planning Poker frontend (static site) and its automated tests.",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "start": "node tools/serve.js"
   },
   "engines": {
     "node": ">=18"

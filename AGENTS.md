@@ -22,7 +22,7 @@ Update this file whenever you make structural, dependency or convention changes.
 # Commands
 
 - Install: not needed; `package.json` has no dependencies.
-- Run: open `index.html` or `app/index.html` directly in a modern browser; no server or build command is configured.
+- Run: `npm start` serves the repo locally at `http://localhost:8080/` (app at `/app/`) via `tools/serve.js`, a dependency-free static file server; or open `index.html`/`app/index.html` directly in a browser.
 - Test: `npm test` (or `node --test` directly; requires Node.js, runs everything under `tests/`).
 - Lint: not configured; there is no linter or lint script.
 
