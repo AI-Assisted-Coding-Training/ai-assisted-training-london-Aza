@@ -1,11 +1,10 @@
-// DOM wiring for the join/start-session screen. Not unit tested; the logic it
-// calls into (room, display-name, roster, session-client, etc.) is.
 import { generateRoomId, isValidRoomId } from './room.js';
 import { parseRoomFromUrl, buildShareableLink } from './room-link.js';
 import { validateDisplayName } from './display-name.js';
 import { createSessionClient } from './session-client.js';
 
 const WS_BASE_URL = 'wss://planning-poker-backend-ymq7.onrender.com/ws';
+const VOTE_CARDS = ['0', '1', '2', '3', '5', '8', '13', '21'];
 
 const root = document.querySelector('[data-testid="app-root"]');
 
@@ -68,7 +67,19 @@ function showSession({ roomId, isStarting }) {
         <label for="share-link-input">Share this link to invite your team</label>
         <input id="share-link-input" type="text" readonly>
       </div>
-      <ul class="roster" data-testid="roster"></ul>
+      <section aria-labelledby="vote-heading">
+        <h2 id="vote-heading">Your estimate</h2>
+        <div class="vote-cards">
+          ${VOTE_CARDS.map((value) => `<button type="button" class="vote-card" data-vote="${value}" aria-pressed="false" disabled>${value}</button>`).join('')}
+        </div>
+        <p class="status" data-testid="vote-lock" role="status"></p>
+        <p class="vote-error" data-testid="vote-error" role="alert"></p>
+      </section>
+      <section aria-labelledby="roster-heading">
+        <h2 id="roster-heading">Participants</h2>
+        <p class="status" data-testid="voting-progress" role="status"></p>
+        <ul class="roster" data-testid="roster"></ul>
+      </section>
     </main>
   `);
 
@@ -96,20 +107,44 @@ function renderRejoinNotice(message) {
   notice.textContent = message ?? '';
 }
 
-function renderRoster(roster) {
+function renderRoster({ roster, votedCount }) {
   const list = root.querySelector('[data-testid="roster"]');
-  if (!list) {
-    return;
+  list.replaceChildren(...roster.map((participant) => {
+    const item = document.createElement('li');
+    const label = document.createElement('span');
+    const voteStatus = document.createElement('span');
+    item.classList.toggle('me', participant.isMe);
+    label.textContent = participant.displayLabel + (participant.isHost ? ' — host' : '');
+    voteStatus.className = 'voted-status';
+    voteStatus.textContent = participant.hasVoted ? 'Voted' : 'Not voted';
+    item.append(label, voteStatus);
+    return item;
+  }));
+
+  const progress = root.querySelector('[data-testid="voting-progress"]');
+  const text = `${votedCount} of ${roster.length} voted`;
+  if (progress.textContent !== text) {
+    progress.textContent = text;
   }
-  list.innerHTML = roster
-    .map((participant) => `<li class="${participant.isMe ? 'me' : ''}">${participant.displayLabel}${participant.isHost ? ' — host' : ''}</li>`)
-    .join('');
+}
+
+function renderVoting({ canVote, revealed, selectedVote }) {
+  for (const card of root.querySelectorAll('[data-vote]')) {
+    card.disabled = !canVote;
+    card.setAttribute('aria-pressed', String(card.dataset.vote === selectedVote));
+  }
+  const lock = root.querySelector('[data-testid="vote-lock"]');
+  const text = revealed ? 'Voting is locked until the next round.' : '';
+  if (lock.textContent !== text) {
+    lock.textContent = text;
+  }
 }
 
 function joinSession({ roomId, name, isStarting }) {
   showSession({ roomId, isStarting });
+  const voteError = root.querySelector('[data-testid="vote-error"]');
 
-  createSessionClient({
+  const client = createSessionClient({
     url: buildWsUrl(roomId, name),
     roomId,
     onStatusChange(status, payload) {
@@ -117,18 +152,28 @@ function joinSession({ roomId, name, isStarting }) {
         renderStatus('Connecting…');
       } else if (status === 'reconnecting') {
         renderStatus('Reconnecting…');
+        voteError.textContent = '';
       } else if (status === 'joined') {
         renderStatus('Connected');
         renderRejoinNotice(payload.outcomeMessage);
       } else if (status === 'roster') {
-        renderRoster(payload.roster);
+        renderRoster(payload);
+      } else if (status === 'voting') {
+        renderVoting(payload);
       } else if (status === 'failed') {
         showFailure(payload.message);
       } else if (status === 'error') {
-        renderStatus(payload.message);
+        voteError.textContent = payload.message;
       }
     },
   });
+
+  for (const card of root.querySelectorAll('[data-vote]')) {
+    card.addEventListener('click', () => {
+      voteError.textContent = '';
+      client.vote(card.dataset.vote);
+    });
+  }
 }
 
 function init() {

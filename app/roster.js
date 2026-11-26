@@ -15,5 +15,6 @@ export function buildRoster(ownUserId, state) {
     displayLabel: nameCounts.get(user.name) > 1 ? `${user.name} #${suffixFor(user.id)}` : user.name,
     isMe: user.id === ownUserId,
     isHost: user.id === state.hostId,
+    hasVoted: user.hasVoted,
   }));
 }
